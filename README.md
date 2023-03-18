@@ -1,4 +1,4 @@
-### EPICclimatedata
+### GetEPICclimatedata
 ## GettingFormattedEPICclimatedata
 
 This code is designed to retrieve climate data for a specific location and time period with focus on using it in the Environmental Policy Integrated Climate (EPIC) model , it calculates yearly means of selected climate variables, and then plot the yearly means for each variable on separate y-axes.

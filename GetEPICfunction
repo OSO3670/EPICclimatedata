@@ -1,0 +1,60 @@
+library(nasapower)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(cowplot)
+
+get_epic_data <- function(start_date, end_date, lon, lat) {
+  
+  # Validate inputs
+  if (!is.numeric(lon) || !is.numeric(lat)) {
+    stop("Longitude and latitude must be numeric values")
+  }
+  
+  if (!grepl("\\d{4}-\\d{2}-\\d{2}", start_date) || !grepl("\\d{4}-\\d{2}-\\d{2}", end_date)) {
+    stop("Invalid date format. Dates must be in YYYY-MM-DD format.")
+  }
+  
+  # Retrieve daily data for given date range and coordinates
+  daily_data <- get_power(community = "AG",
+                          lonlat = c(lon, lat),
+                          pars = c("RH2M", "T2M_MAX", "T2M_MIN", "CLRSKY_SFC_SW_DWN", "PRECTOTCORR", "WS10M"),
+                          dates = c(start_date, end_date),
+                          temporal_api = "daily"
+  )
+  
+  # Rearrange columns
+  epicdata <- daily_data[, c("YEAR", "MM", "DD", "RH2M", "T2M_MAX", "T2M_MIN", "PRECTOTCORR", "WS10M", "CLRSKY_SFC_SW_DWN")]
+  colnames(epicdata) <- c("YEAR", "MONTH", "DAY", "RHD", "TMAX", "TMIN", "RAIN", "WV", "RAD")
+  
+  # Calculate yearly means for each variable
+  yearly_means <- epicdata %>%
+    group_by(YEAR) %>%
+    summarize(across(c(TMAX, TMIN, RAIN, WV, RAD), mean, na.rm = TRUE))
+  
+  # Create a function to plot each variable on a separate y-axis
+  plot_var <- function(data, x, y, y_label) {
+    ggplot(data, aes_string(x = x, y = y, color = y))+
+      geom_line() +
+      scale_y_continuous(name = y_label) +
+      theme_bw()
+  }
+  
+  
+  # Plot each variable on a separate y-axis and add variable name as a title
+  plot_tmax <- plot_var(yearly_means, "YEAR", "TMAX", "Max Temp (°C)") + ggtitle("Maximum Temperature")
+  plot_tmin <- plot_var(yearly_means, "YEAR", "TMIN", "Min Temp (°C)") + ggtitle("Minimum Temperature")
+  plot_rain <- plot_var(yearly_means, "YEAR", "RAIN", "Precipitation(mm/day)") + ggtitle("Rainfall")
+  plot_wv <- plot_var(yearly_means, "YEAR", "WV", "Wind speed (m/s)") + ggtitle("Wind Speed")
+  plot_rad <- plot_var(yearly_means, "YEAR", "RAD", "solar radiation (W/m²)") + ggtitle("Solar Radiation")
+  
+  # Combine the plots into one figure
+  plot_combined <- plot_grid(plot_tmax, plot_tmin, plot_rain, plot_wv, plot_rad, ncol = 1)
+  
+  # Combine summary and plot into a list and return with datatable
+  result_list <- list(data = epicdata, summary = yearly_means, plot = plot_combined)
+  return(result_list)
+}
+
+# Example usage
+get_epic_data(start_date = "1984-01-01", end_date = "2020-12-31", lon = -92.54, lat = 42.95)

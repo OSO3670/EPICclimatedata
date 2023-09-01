@@ -93,3 +93,8 @@ soil_df <- soil_df[, c("Depth", "Thickness", "Bulk Density", "AirDry", "Wilting 
 
 View(soil_df)
 
+
+Iowa <- get_iem_apsim_met(lonlat = c(-93.74, 42.00), 
+                          dates = c("2023-01-01",
+                                    "2023-06-30"))
+write_xlsx(Iowa, "C:/Users/olutuyi/Documents/data-sorenson/ab.xlsx")
